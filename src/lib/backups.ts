@@ -38,13 +38,8 @@ export async function loadBackups(): Promise<StoredBackup[]> {
 }
 
 async function writeBackups(list: StoredBackup[]): Promise<void> {
-  const json = JSON.stringify(list);
-  let payload: string;
-  try {
-    payload = await encryptText(json);
-  } catch {
-    payload = json; // لا نفقد النسخ أبداً — يعاد التشفير في الحفظ التالي
-  }
+  // Fail-Closed: لا نكتب إلا مشفراً — تعطّل التشفير يعني تعطيل الكتابة
+  const payload = await encryptText(JSON.stringify(list));
   await AsyncStorage.setItem(BACKUPS_KEY, payload);
 }
 
@@ -96,13 +91,7 @@ export async function loadRestoreSnapshot(): Promise<StoredBackup | null> {
 }
 
 async function writeBackupsEntry(key: string, entry: StoredBackup): Promise<void> {
-  const json = JSON.stringify(entry);
-  let payload: string;
-  try {
-    payload = await encryptText(json);
-  } catch {
-    payload = json;
-  }
+  const payload = await encryptText(JSON.stringify(entry));
   await AsyncStorage.setItem(key, payload);
 }
 

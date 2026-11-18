@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { defaultDB, loadDB, saveDB, clearDB, parseImportedDB } from './storage';
+import { defaultDB, loadDB, saveDB, parseImportedDB, purgeAll } from './storage';
 import { saveDailyBackup } from './backups';
 import { themeOf, type Theme } from './theme';
 import type { Account, Category, DB, Debt, Goal, Settings, Tx } from './types';
@@ -146,7 +146,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       importFromText: (text) => setDb(parseImportedDB(text)),
 
       resetAll: async () => {
-        await clearDB();
+        await purgeAll();
         setDb(defaultDB());
       },
 

@@ -293,19 +293,26 @@ export async function loadDB(): Promise<LoadResult> {
 }
 
 export async function saveDB(db: DB): Promise<void> {
-  const json = JSON.stringify(db);
-  let payload: string;
-  try {
-    payload = await encryptText(json);
-  } catch {
-    // لا نفقد البيانات أبداً: إذا فشل التشفير نكتب نصاً صريحاً (ويعاد التشفير في الحفظ التالي)
-    payload = json;
-  }
+  // Fail-Closed: التشفير شرط للكتابة. إذا تعذّر التشفير (وضع locked مثلاً) لا نكتب شيئاً
+  // حتى لا نستبدل مخزوناً مشفراً موجوداً بنص صريح أو ننزاح عن مفتاح آخر.
+  const payload = await encryptText(JSON.stringify(db));
   await AsyncStorage.setItem(KEY, payload);
 }
 
 export async function clearDB(): Promise<void> {
   await AsyncStorage.removeItem(KEY);
+}
+
+/** مسح شامل بوعي المستخدم: كل المخزون المشفر + الإنقاذ + النسخ الداخلية + بذرة المفتاح المحلي */
+export async function purgeAll(): Promise<void> {
+  await Promise.all([
+    AsyncStorage.removeItem(KEY),
+    AsyncStorage.removeItem(RESCUE_KEY),
+    AsyncStorage.removeItem('mahfazati.db.backups.v1'),
+    AsyncStorage.removeItem('mahfazati.db.pre-restore.v1'),
+    AsyncStorage.removeItem('mahfazati.crypt.mode.v1'),
+    AsyncStorage.removeItem('mahfazati.crypt.fallback.seed.v1'),
+  ]).catch(() => {});
 }
 
 export function parseImportedDB(text: string): DB {

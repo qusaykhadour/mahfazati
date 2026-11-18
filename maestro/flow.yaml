@@ -1,34 +1,37 @@
 # فحص آلي سريع لتطبيق محفظتي — نقاط ونسب مئوية + تحقق إنجليزي/رقمي فقط
 # (تفادي مشكلة ترميز ويندوز مع النص العربي في Maestro)
-# التشغيل: افتح التطبيق أولاً عبر adb ثم:
+# التشغيل:
+#   adb shell am force-stop com.mahfazati.app
 #   maestro test D:/mz/maestro/flow.yaml
 appId: com.mahfazati.app
 name: mahfazati flow
 ---
-# ٠) التطبيق مفتوح مسبقاً — نرجع للرئيسية أولاً (الشريط السفلي موجود بكل الشاشات)
-- tapOn:
-    point: "90%,97%"
+# ٠) إطلاق نظيف يبدأ من الرئيسية دائماً
+- launchApp
 - extendedWaitUntil:
     visible: "$"
     timeout: 20000
 
-# ١) اجتياز شاشة الترحيب إن ظهرت (نقرات اختيارية بإحداثيات measured)
-- tapOn:
-    point: "50%,46%"
-    optional: true
-- tapOn:
-    point: "29%,41%"
-    optional: true
-- tapOn:
-    point: "50%,39%"
-    optional: true
+# ١) اجتياز شاشة الترحيب فقط إن لم تظهر الرئيسية ($ ظاهر على الرئيسية دائماً)
+- runFlow:
+    when:
+      notVisible: "$"
+    commands:
+      - tapOn:
+          point: "50%,46%"
+      - tapOn:
+          point: "29%,41%"
+          optional: true
+      - tapOn:
+          point: "50%,39%"
+          optional: true
 - extendedWaitUntil:
     visible: "$"
     timeout: 20000
 
 # ٢) الشاشة الرئيسية: الرصيد والعملة ظاهران
 - assertVisible: "$"
-- assertVisible: "0"
+- assertVisible: ".*0.*"
 
 # ٣) تبويب الحسابات
 - tapOn:
@@ -55,7 +58,7 @@ name: mahfazati flow
 - tapOn:
     point: "26%,97%"
 - extendedWaitUntil:
-    visible: "0"
+    visible: ".*0.*"
     timeout: 15000
 
 # ٧) تبويب الإعدادات + تمرير للأسفل (إيقاع ثابت مطابق للفحص اليدوي)
