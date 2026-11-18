@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "محفظتي",
+    "slug": "mahfazati",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mahfazati",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mahfazati.app"
+    },
+    "android": {
+      "package": "com.mahfazati.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B6B63",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 190,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B6B63",
+          "dark": {
+            "backgroundColor": "#080E17",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}

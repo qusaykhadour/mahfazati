@@ -1,0 +1,6 @@
+appId: com.mahfazati.app
+---
+- launchApp:
+    stopApp: false
+    clearState: false
+- assertVisible: "محفظتي"

@@ -1,0 +1,30 @@
+// Google's CDN (dl.google.com) غير متاح من هذه الشبكة، فهذا السكربت يوجّه
+// طلبات Maven إلى مرايا متاحة، مع إعادة المحاولة عند انقطاع الاتصال.
+def googleMirror = 'https://maven.aliyun.com/repository/google'
+def centralMirror = 'https://maven.aliyun.com/repository/public'
+
+allprojects { p ->
+  p.buildscript.repositories {
+    maven { url = centralMirror }
+    maven { url = googleMirror }
+    mavenCentral()
+    maven { url = 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+    google()
+  }
+  p.repositories {
+    maven { url = centralMirror }
+    maven { url = googleMirror }
+    mavenCentral()
+    maven { url = 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+    maven { url = 'https://www.jitpack.io' }
+    google()
+  }
+}
+
+settingsEvaluated { settings ->
+  settings.pluginManagement.repositories {
+    maven { url = 'https://maven.aliyun.com/repository/gradle-plugin' }
+    gradlePluginPortal()
+    mavenCentral()
+  }
+}

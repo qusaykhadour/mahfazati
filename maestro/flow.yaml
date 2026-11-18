@@ -1,0 +1,135 @@
+# فحص آلي سريع لتطبيق محفظتي — نقاط ونسب مئوية + تحقق إنجليزي/رقمي فقط
+# (تفادي مشكلة ترميز ويندوز مع النص العربي في Maestro)
+# التشغيل: افتح التطبيق أولاً عبر adb ثم:
+#   maestro test D:/mz/maestro/flow.yaml
+appId: com.mahfazati.app
+name: mahfazati flow
+---
+# ٠) التطبيق مفتوح مسبقاً — نرجع للرئيسية أولاً (الشريط السفلي موجود بكل الشاشات)
+- tapOn:
+    point: "90%,97%"
+- extendedWaitUntil:
+    visible: "$"
+    timeout: 20000
+
+# ١) اجتياز شاشة الترحيب إن ظهرت (نقرات اختيارية بإحداثيات measured)
+- tapOn:
+    point: "50%,46%"
+    optional: true
+- tapOn:
+    point: "29%,41%"
+    optional: true
+- tapOn:
+    point: "50%,39%"
+    optional: true
+- extendedWaitUntil:
+    visible: "$"
+    timeout: 20000
+
+# ٢) الشاشة الرئيسية: الرصيد والعملة ظاهران
+- assertVisible: "$"
+- assertVisible: "0"
+
+# ٣) تبويب الحسابات
+- tapOn:
+    point: "74%,97%"
+- extendedWaitUntil:
+    visible: "$"
+    timeout: 15000
+
+# ٤) تبويب الديون
+- tapOn:
+    point: "58%,97%"
+- extendedWaitUntil:
+    visible: "$"
+    timeout: 15000
+
+# ٥) تبويب المدخرات
+- tapOn:
+    point: "42%,97%"
+- extendedWaitUntil:
+    visible: "$"
+    timeout: 15000
+
+# ٦) تبويب التقارير
+- tapOn:
+    point: "26%,97%"
+- extendedWaitUntil:
+    visible: "0"
+    timeout: 15000
+
+# ٧) تبويب الإعدادات + تمرير للأسفل (إيقاع ثابت مطابق للفحص اليدوي)
+- tapOn:
+    point: "10%,97%"
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,37%"
+    end: "50%,70%"
+    duration: 400
+- swipe:
+    start: "50%,37%"
+    end: "50%,70%"
+    duration: 400
+
+# ٨) تفعيل إخفاء الأرقام والتحقق من اختفاء الرموز
+- tapOn:
+    point: "30%,79%"
+- tapOn:
+    point: "90%,97%"
+- assertNotVisible: "$"
+
+# ٩) إعادة الإظهار وإرجاع الحالة
+- tapOn:
+    point: "10%,97%"
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,66%"
+    end: "50%,29%"
+    duration: 400
+- swipe:
+    start: "50%,37%"
+    end: "50%,70%"
+    duration: 400
+- swipe:
+    start: "50%,37%"
+    end: "50%,70%"
+    duration: 400
+- tapOn:
+    point: "70%,79%"
+- tapOn:
+    point: "90%,97%"
+- assertVisible: "$"
