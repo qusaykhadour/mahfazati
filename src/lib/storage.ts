@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Account, Category, Currency, CurrencyRates, Debt, Goal, RateQuote, Settings, Tx, DB } from './types';
 import { CURRENCY_ORDER } from './money';
-import { decryptText, encryptText, isEncryptedPayload } from './crypt';
+import { decryptText, encryptText, isEncryptedPayload, encryptRecovery, decryptRecovery, demoteToFallback, RECOVERY_STORAGE_KEY } from './crypt';
 
 const KEY = 'mahfazati.db.v1';
 const RESCUE_KEY = 'mahfazati.db.rescue.v1';
@@ -276,7 +276,20 @@ export async function loadDB(): Promise<LoadResult> {
     if (!raw) return { db: defaultDB(), ok: true };
     let text = raw;
     if (isEncryptedPayload(raw)) {
-      text = await decryptText(raw);
+      try {
+        text = await decryptText(raw);
+      } catch {
+        // خدعة شاومي: مفتاح Keystore ضاع بعد إعادة التشغيل — نحاول بطاقة الاسترجاع
+        // (مشفرة دائماً بالمفتاح المحلي المشتق) ثم ننتقل هادئاً لوضع fallback
+        const recRaw = await AsyncStorage.getItem(RECOVERY_STORAGE_KEY);
+        if (recRaw) {
+          const recText = await decryptRecovery(recRaw);
+          const db = sanitize(JSON.parse(recText));
+          await demoteToFallback();
+          return { db, ok: true };
+        }
+        throw new Error('المخزون المشفر غير قابل للقراءة وبلا بطاقة استرجاع');
+      }
     }
     // غير مشفرة (نسخة قديمة) = تُقرأ كنص وتُشفَّر تلقائياً عند أول حفظ
     return { db: sanitize(JSON.parse(text)), ok: true };
@@ -293,10 +306,16 @@ export async function loadDB(): Promise<LoadResult> {
 }
 
 export async function saveDB(db: DB): Promise<void> {
-  // Fail-Closed: التشفير شرط للكتابة. إذا تعذّر التشفير (وضع locked مثلاً) لا نكتب شيئاً
-  // حتى لا نستبدل مخزوناً مشفراً موجوداً بنص صريح أو ننزاح عن مفتاح آخر.
-  const payload = await encryptText(JSON.stringify(db));
+  // Fail-Closed: التشفير شرط للكتابة. إذا تعذّر التشفير (وضع locked) لا نكتب شيئاً
+  const json = JSON.stringify(db);
+  const payload = await encryptText(json);
   await AsyncStorage.setItem(KEY, payload);
+  // بطاقة الاسترجاع بالمفتاح المحلي المشتق — تنقذ البيانات إذا ضاع مفتاح Keystore
+  try {
+    await AsyncStorage.setItem(RECOVERY_STORAGE_KEY, await encryptRecovery(json));
+  } catch {
+    // الأصل المشفر هو الحكم — فشل بطاقة الاسترجاع لا يعطل الحفظ
+  }
 }
 
 export async function clearDB(): Promise<void> {
@@ -308,6 +327,7 @@ export async function purgeAll(): Promise<void> {
   await Promise.all([
     AsyncStorage.removeItem(KEY),
     AsyncStorage.removeItem(RESCUE_KEY),
+    AsyncStorage.removeItem(RECOVERY_STORAGE_KEY),
     AsyncStorage.removeItem('mahfazati.db.backups.v1'),
     AsyncStorage.removeItem('mahfazati.db.pre-restore.v1'),
     AsyncStorage.removeItem('mahfazati.crypt.mode.v1'),

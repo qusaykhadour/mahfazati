@@ -20,6 +20,8 @@ import aesjs from 'aes-js';
 
 const KEY_NAME = 'mahfazati.db.key.v1';
 const PREFIX = 'mahfazati.enc.v1:';
+/** نسخة استرجاع مشفرة دائماً بالمفتاح المحلي المشتق — تنقذ البيانات إذا ضاع مفتاح Keystore */
+const RECOVERY_KEY = 'mahfazati.db.recovery.v1';
 /** علامة الوضع في AsyncStorage (تخزين موثوق على كل الأجهزة) */
 const MODE_MARKER = 'mahfazati.crypt.mode.v1';
 /** بذرة المفتاح المحلي (عشوائية، داخل التطبيق) */
@@ -231,6 +233,55 @@ async function loadDerivedKeys(): Promise<KeyState> {
   }
   return resolving;
 }
+
+/** حالة المفتاح المحلي المشتق (لبطاقة الاسترجاع) — تُبنى كسولاً */
+let fallbackState: KeyState | null = null;
+async function loadFallbackState(): Promise<KeyState> {
+  if (fallbackState) return fallbackState;
+  const hex = await getFallbackKeyHex();
+  if (!hex) throw new Error('لا يمكن بناء مفتاح الاسترجاع المحلي');
+  fallbackState = await buildState(hex, 'fallback');
+  return fallbackState;
+}
+
+/** يشفّر ببطاقة الاسترجاع (المفتاح المحلي المشتق) — بلا أي اعتماد على SecureStore */
+export async function encryptRecovery(text: string): Promise<string> {
+  const state = await loadFallbackState();
+  const iv = await Crypto.getRandomBytesAsync(16);
+  const ctr = new aesjs.ModeOfOperation.ctr(state.enc, new aesjs.Counter(iv));
+  const cipher = ctr.encrypt(aesjs.utils.utf8.toBytes(text));
+  const ivHex = toHex(iv);
+  const ctHex = toHex(cipher);
+  const mac = await hmacSha256Hex(state.mac, ivHex + ':' + ctHex);
+  return `${PREFIX}${ivHex}:${mac}:${ctHex}`;
+}
+
+/** يفك بطاقة الاسترجاع — ينجح فقط إذا كان المحتوى مشفراً بالمفتاح المحلي المشتق */
+export async function decryptRecovery(payload: string): Promise<string> {
+  if (!isEncryptedPayload(payload)) throw new Error('حمولة غير مشفرة');
+  const parts = payload.slice(PREFIX.length).split(':');
+  if (parts.length !== 3) throw new Error('صيغة مشفرة غير صالحة');
+  const [ivHex, macHex, ctHex] = parts;
+  const state = await loadFallbackState();
+  const expected = await hmacSha256Hex(state.mac, ivHex + ':' + ctHex);
+  if (expected !== macHex) throw new Error('بطاقة الاسترجاع لا تطابق المفتاح المحلي');
+  const ctr = new aesjs.ModeOfOperation.ctr(state.enc, new aesjs.Counter(fromHex(ivHex)));
+  return aesjs.utils.utf8.fromBytes(ctr.decrypt(fromHex(ctHex)));
+}
+
+/** الانتقال الهادئ إلى الوضع المحلي المشتق بعد نجاح الاسترجاع — لا عودة لـ SecureStore */
+export async function demoteToFallback(): Promise<void> {
+  const state = await loadFallbackState();
+  resolvedKeys = state;
+  try {
+    await AsyncStorage.setItem(MODE_MARKER, 'fallback');
+  } catch {
+    // العلامة اختيارية — الحالة المحلية تكفي لهذه الجلسة
+  }
+}
+
+/** مفتاح بطاقة الاسترجاع في AsyncStorage — لمسحه عند المسح الشامل */
+export const RECOVERY_STORAGE_KEY = RECOVERY_KEY;
 
 /** true = يوجد مخزون مشفر لا يمكن قراءته — الوضع للقراءة فقط بلا كتابة */
 export async function isCryptoLocked(): Promise<boolean> {
